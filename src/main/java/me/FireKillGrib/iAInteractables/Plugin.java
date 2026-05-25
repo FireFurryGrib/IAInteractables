@@ -6,6 +6,7 @@ import me.FireKillGrib.iAInteractables.commands.MainCommand;
 import me.FireKillGrib.iAInteractables.listeners.FurnitureListener;
 import me.FireKillGrib.iAInteractables.listeners.ItemsAdderListener;
 import me.FireKillGrib.iAInteractables.listeners.RecipeBookListener;
+import me.FireKillGrib.iAInteractables.listeners.VanillaRecipeListener;
 import me.FireKillGrib.iAInteractables.managers.*;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -21,6 +22,7 @@ public class Plugin extends JavaPlugin {
     @Getter private FurnaceDataManager furnaceDataManager;
     @Getter private FurnaceManager furnaceManager;
     @Getter private IntegrationManager integrationManager;
+    @Getter private VanillaRecipeManager vanillaRecipeManager;
 
     @Override
     public void onEnable() {
@@ -38,20 +40,30 @@ public class Plugin extends JavaPlugin {
         }));
         saveDefaultConfig();
         createDefaultConfigs();
+        
         configManager = new ConfigManager();
         recipeManager = new RecipeManager();
         instanceManager = new InstanceManager();
         furnaceDataManager = new FurnaceDataManager(getDataFolder());
         furnaceManager = new FurnaceManager();
         integrationManager = new IntegrationManager();
+        vanillaRecipeManager = new VanillaRecipeManager();
+        
         PaperCommandManager manager = new PaperCommandManager(this);
         manager.registerCommand(new MainCommand());
+        
         getServer().getPluginManager().registerEvents(new FurnitureListener(), this);
+        getServer().getPluginManager().registerEvents(new VanillaRecipeListener(), this);
+        getServer().getPluginManager().registerEvents(new VanillaRecipeListener(), this);
+        getServer().getPluginManager().registerEvents(new me.FireKillGrib.iAInteractables.utils.ChatInputManager(), this);
+        
         if (getServer().getPluginManager().isPluginEnabled("ItemsAdder")) {
             getServer().getPluginManager().registerEvents(new ItemsAdderListener(), this);
         }
         getServer().getPluginManager().registerEvents(new RecipeBookListener(), this);
+        
         reload();
+        
         getServer().getScheduler().runTaskLater(this, () -> {
             integrationManager.loadRecipes();
         }, 1200L);
@@ -66,6 +78,7 @@ public class Plugin extends JavaPlugin {
             furnaceManager.shutdown();
         }
     }
+    
     public void reload() {
         reloadConfig();
         if (configManager != null) configManager.reload();
@@ -75,7 +88,11 @@ public class Plugin extends JavaPlugin {
             recipeManager.loadWorkbenches();
             recipeManager.loadSmithingTables();
         }
+        if (vanillaRecipeManager != null) {
+            vanillaRecipeManager.load();
+        }
     }
+    
     private void createDefaultConfigs() {
         File furnacesFolder = new File(getDataFolder(), "furnaces");
         File workbenchesFolder = new File(getDataFolder(), "workbenches");

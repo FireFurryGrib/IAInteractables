@@ -26,10 +26,12 @@ public class WorkbenchGUI {
     private final Map<Character, Integer> charToSlotMap = new HashMap<>();
     private final List<Integer> indexToSlotList = new ArrayList<>();
     private int resultGuiSlotIndex = -1;
+
     public WorkbenchGUI(Workbench workbench) {
         this.workbench = workbench;
         this.gridInventory = new VirtualInventory(null, 54);
     }
+
     public void open(Player player) {
         gui = createGui();
         gridInventory.setPostUpdateHandler(event -> updateResult());
@@ -47,6 +49,7 @@ public class WorkbenchGUI {
                 })
                 .open(player);
     }
+
     private Gui createGui() {
         Gui.Builder.Normal guiBuilder = Gui.normal()
                 .setStructure(workbench.getStructure().toArray(new String[0]));
@@ -71,6 +74,7 @@ public class WorkbenchGUI {
         }
         return guiBuilder.build();
     }
+
     private void updateResult() {
         currentRecipe = null;
         for (WorkbenchRecipe recipe : workbench.getRecipes()) {
@@ -83,6 +87,7 @@ public class WorkbenchGUI {
             gui.setItem(resultGuiSlotIndex, new ResultItem());
         }
     }
+
     private boolean checkRecipe(WorkbenchRecipe recipe) {
         for (Map.Entry<Character, ItemStack> entry : recipe.getIngredients().entrySet()) {
             char key = entry.getKey();
@@ -104,6 +109,7 @@ public class WorkbenchGUI {
         }
         return true;
     }
+
     private boolean isSlotUsedInRecipe(WorkbenchRecipe recipe, int slotIndex) {
         for (char key : recipe.getIngredients().keySet()) {
             Integer mappedSlot = resolveSlotIndex(key);
@@ -113,6 +119,7 @@ public class WorkbenchGUI {
         }
         return false;
     }
+
     private Integer resolveSlotIndex(char key) {
         if (charToSlotMap.containsKey(key)) {
             return charToSlotMap.get(key);
@@ -125,6 +132,7 @@ public class WorkbenchGUI {
         }
         return null;
     }
+
     private boolean isSameItem(ItemStack item1, ItemStack item2) {
         if (item1 == null || item2 == null) return false;
         CustomStack c1 = CustomStack.byItemStack(item1);
@@ -134,6 +142,7 @@ public class WorkbenchGUI {
         }
         return c1 == null && c2 == null && item1.getType() == item2.getType();
     }
+
     private class ResultItem extends AbstractItem {
         @Override
         public ItemProvider getItemProvider() {
@@ -146,23 +155,83 @@ public class WorkbenchGUI {
         @Override
         public void handleClick(ClickType clickType, Player player, InventoryClickEvent event) {
             if (currentRecipe == null) return;
-            if (event.isLeftClick() || event.isRightClick() || event.isShiftClick()) {
-                if (player.getItemOnCursor().getType() != Material.AIR) return;
-                player.setItemOnCursor(currentRecipe.getResult().clone());
-                if (workbench.getEffects() != null && workbench.getEffects().getOnCraft() != null) {
-                    workbench.getEffects().getOnCraft().play(player, player.getLocation());
+            WorkbenchRecipe recipeToCraft = currentRecipe;
+            ItemStack resultObj = recipeToCraft.getResult().clone();
+
+            int crafts = 1;
+            if (event.isShiftClick()) {
+                crafts = calculateMaxCrafts();
+                int space = getAvailableSpace(player, resultObj);
+                int maxFit = space / resultObj.getAmount();
+                crafts = Math.min(crafts, maxFit);
+                
+                if (crafts <= 0) return;
+                
+                ItemStack toGive = resultObj.clone();
+                toGive.setAmount(resultObj.getAmount() * crafts);
+                consumeIngredients(crafts);
+                
+                HashMap<Integer, ItemStack> left = player.getInventory().addItem(toGive);
+                for (ItemStack drop : left.values()) {
+                    player.getWorld().dropItem(player.getLocation(), drop);
                 }
-                consumeIngredients();
-                updateResult();
+            } else {
+                ItemStack cursor = player.getItemOnCursor();
+                if (cursor.getType() != Material.AIR) {
+                    if (!isSameItem(cursor, resultObj)) return;
+                    if (cursor.getAmount() + resultObj.getAmount() > resultObj.getMaxStackSize()) return;
+                }
+                
+                consumeIngredients(1);
+                
+                if (cursor.getType() == Material.AIR) {
+                    player.setItemOnCursor(resultObj);
+                } else {
+                    cursor.setAmount(cursor.getAmount() + resultObj.getAmount());
+                }
             }
+
+            if (workbench.getEffects() != null && workbench.getEffects().getOnCraft() != null) {
+                workbench.getEffects().getOnCraft().play(player, player.getLocation());
+            }
+            updateResult();
         }
-        private void consumeIngredients() {
+
+        private int calculateMaxCrafts() {
+            int max = Integer.MAX_VALUE;
             for (Map.Entry<Character, ItemStack> entry : currentRecipe.getIngredients().entrySet()) {
                 Integer slotIndex = resolveSlotIndex(entry.getKey());
                 if (slotIndex != null) {
                     ItemStack current = gridInventory.getItem(slotIndex);
                     if (current != null) {
-                        int newAmount = current.getAmount() - entry.getValue().getAmount();
+                        max = Math.min(max, current.getAmount() / entry.getValue().getAmount());
+                    } else {
+                        return 0;
+                    }
+                }
+            }
+            return max;
+        }
+
+        private int getAvailableSpace(Player player, ItemStack item) {
+            int space = 0;
+            for (ItemStack invItem : player.getInventory().getStorageContents()) {
+                if (invItem == null || invItem.getType() == Material.AIR) {
+                    space += item.getMaxStackSize();
+                } else if (isSameItem(invItem, item)) {
+                    space += Math.max(0, item.getMaxStackSize() - invItem.getAmount());
+                }
+            }
+            return space;
+        }
+
+        private void consumeIngredients(int multiplier) {
+            for (Map.Entry<Character, ItemStack> entry : currentRecipe.getIngredients().entrySet()) {
+                Integer slotIndex = resolveSlotIndex(entry.getKey());
+                if (slotIndex != null) {
+                    ItemStack current = gridInventory.getItem(slotIndex);
+                    if (current != null) {
+                        int newAmount = current.getAmount() - (entry.getValue().getAmount() * multiplier);
                         if (newAmount <= 0) {
                             gridInventory.setItem(null, slotIndex, null);
                         } else {

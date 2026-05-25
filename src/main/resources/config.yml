@@ -2,6 +2,7 @@ no-perm: "&cNo rights!"
 reload: "&aConfigs succesfully reloaded!"
 usages:
   - "&f/iai reload <name> - reload configs"
+  - "&f/iai editor - open editor menu"
 recipe-book:
   enabled: true
   item: "KNOWLEDGE_BOOK"

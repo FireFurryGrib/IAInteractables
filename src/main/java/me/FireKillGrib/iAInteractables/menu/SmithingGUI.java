@@ -26,6 +26,7 @@ public class SmithingGUI {
     private SmithingRecipe currentRecipe = null;
     private final Map<Character, Integer> charToSlotMap = new HashMap<>();
     private int resultGuiSlotIndex = -1;
+
     public SmithingGUI(SmithingTable table) {
         this.table = table;
         this.inventory = new VirtualInventory(null, 3);
@@ -33,6 +34,7 @@ public class SmithingGUI {
         charToSlotMap.put('B', 1);
         charToSlotMap.put('A', 2);
     }
+
     public void open(Player player) {
         gui = createGui();
         inventory.setPostUpdateHandler(event -> updateResult());
@@ -51,6 +53,7 @@ public class SmithingGUI {
                 .build(player)
                 .open();
     }
+
     private Gui createGui() {
         Gui.Builder.Normal guiBuilder = Gui.normal()
                 .setStructure(table.getStructure().toArray(new String[0]));
@@ -71,6 +74,7 @@ public class SmithingGUI {
         }
         return guiBuilder.build();
     }
+
     private void updateResult() {
         currentRecipe = null;
         for (SmithingRecipe recipe : table.getRecipes()) {
@@ -83,12 +87,14 @@ public class SmithingGUI {
             gui.setItem(resultGuiSlotIndex, new ResultItem());
         }
     }
+
     private boolean checkRecipe(SmithingRecipe recipe) {
         if (!checkSlot(0, recipe.getTemplate())) return false;
         if (!checkSlot(1, recipe.getBase())) return false;
         if (!checkSlot(2, recipe.getAddition())) return false;
         return true;
     }
+
     private boolean checkSlot(int slotIndex, ItemStack required) {
         ItemStack current = inventory.getItem(slotIndex);
         if (required == null) {
@@ -99,6 +105,7 @@ public class SmithingGUI {
         }
         return isSameItem(current, required) && current.getAmount() >= required.getAmount();
     }
+
     private boolean isSameItem(ItemStack item1, ItemStack item2) {
         if (item1 == null || item2 == null) return false;
         CustomStack c1 = CustomStack.byItemStack(item1);
@@ -108,6 +115,7 @@ public class SmithingGUI {
         }
         return c1 == null && c2 == null && item1.getType() == item2.getType();
     }
+
     private class ResultItem extends AbstractItem {
         @Override
         public ItemProvider getItemProvider() {
@@ -121,28 +129,86 @@ public class SmithingGUI {
         public void handleClick(ClickType clickType, Player player, InventoryClickEvent event) {
             if (currentRecipe == null) return;
             SmithingRecipe recipeToCraft = currentRecipe;
-            if (event.isLeftClick() || event.isRightClick() || event.isShiftClick()) {
-                if (player.getItemOnCursor().getType() != Material.AIR) return;
-                player.setItemOnCursor(recipeToCraft.getResult().clone());
-                if (table.getEffects() != null && table.getEffects().getOnCraft() != null) {
-                    table.getEffects().getOnCraft().play(player, player.getLocation());
+            ItemStack resultObj = recipeToCraft.getResult().clone();
+
+            int crafts = 1;
+            if (event.isShiftClick()) {
+                crafts = calculateMaxCrafts();
+                int space = getAvailableSpace(player, resultObj);
+                int maxFit = space / resultObj.getAmount();
+                crafts = Math.min(crafts, maxFit);
+                
+                if (crafts <= 0) return;
+
+                ItemStack toGive = resultObj.clone();
+                toGive.setAmount(resultObj.getAmount() * crafts);
+                
+                consumeItem(0, recipeToCraft.getTemplate(), crafts);
+                consumeItem(1, recipeToCraft.getBase(), crafts); 
+                consumeItem(2, recipeToCraft.getAddition(), crafts); 
+
+                HashMap<Integer, ItemStack> left = player.getInventory().addItem(toGive);
+                for (ItemStack drop : left.values()) {
+                    player.getWorld().dropItem(player.getLocation(), drop);
                 }
-                inventory.setPostUpdateHandler(null);
-                try {
-                    consumeItem(0, recipeToCraft.getTemplate());
-                    consumeItem(1, recipeToCraft.getBase()); 
-                    consumeItem(2, recipeToCraft.getAddition()); 
-                } finally {
-                    inventory.setPostUpdateHandler(e -> updateResult());
-                    updateResult();
+            } else {
+                ItemStack cursor = player.getItemOnCursor();
+                if (cursor.getType() != Material.AIR) {
+                    if (!isSameItem(cursor, resultObj)) return;
+                    if (cursor.getAmount() + resultObj.getAmount() > resultObj.getMaxStackSize()) return;
+                }
+                
+                consumeItem(0, recipeToCraft.getTemplate(), 1);
+                consumeItem(1, recipeToCraft.getBase(), 1); 
+                consumeItem(2, recipeToCraft.getAddition(), 1); 
+
+                if (cursor.getType() == Material.AIR) {
+                    player.setItemOnCursor(resultObj);
+                } else {
+                    cursor.setAmount(cursor.getAmount() + resultObj.getAmount());
                 }
             }
+
+            if (table.getEffects() != null && table.getEffects().getOnCraft() != null) {
+                table.getEffects().getOnCraft().play(player, player.getLocation());
+            }
+            updateResult();
         }
-        private void consumeItem(int slot, ItemStack required) {
+
+        private int calculateMaxCrafts() {
+            int max = Integer.MAX_VALUE;
+            max = checkMaxForSlot(0, currentRecipe.getTemplate(), max);
+            max = checkMaxForSlot(1, currentRecipe.getBase(), max);
+            max = checkMaxForSlot(2, currentRecipe.getAddition(), max);
+            return max;
+        }
+
+        private int checkMaxForSlot(int slot, ItemStack required, int currentMax) {
+            if (required == null) return currentMax;
+            ItemStack current = inventory.getItem(slot);
+            if (current != null && !current.getType().isAir()) {
+                return Math.min(currentMax, current.getAmount() / required.getAmount());
+            }
+            return 0;
+        }
+
+        private int getAvailableSpace(Player player, ItemStack item) {
+            int space = 0;
+            for (ItemStack invItem : player.getInventory().getStorageContents()) {
+                if (invItem == null || invItem.getType() == Material.AIR) {
+                    space += item.getMaxStackSize();
+                } else if (isSameItem(invItem, item)) {
+                    space += Math.max(0, item.getMaxStackSize() - invItem.getAmount());
+                }
+            }
+            return space;
+        }
+
+        private void consumeItem(int slot, ItemStack required, int multiplier) {
             if (required == null) return;
             ItemStack current = inventory.getItem(slot);
             if (current != null) {
-                int newAmount = current.getAmount() - required.getAmount();
+                int newAmount = current.getAmount() - (required.getAmount() * multiplier);
                 if (newAmount <= 0) {
                     inventory.setItem(null, slot, null);
                 } else {
