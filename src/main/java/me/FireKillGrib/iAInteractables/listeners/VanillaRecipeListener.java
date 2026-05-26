@@ -33,7 +33,6 @@ public class VanillaRecipeListener implements Listener {
         CraftingInventory inv = event.getInventory();
         Recipe bukkitRecipe = inv.getRecipe();
         
-        // Проверяем, совпал ли фейковый рецепт из баккита
         boolean isOurDummy = false;
         if (bukkitRecipe instanceof Keyed) {
             NamespacedKey key = ((Keyed) bukkitRecipe).getKey();
@@ -51,7 +50,6 @@ public class VanillaRecipeListener implements Listener {
                 if (reqGrid != null) {
                     int[] offset = getMatchOffset(matGrid, reqGrid);
                     if (offset != null) {
-                        // Полное совпадение с нашим рецептом (включая количество)! Выдаем результат
                         inv.setResult(recipe.getResult().clone());
                         return;
                     }
@@ -59,7 +57,7 @@ public class VanillaRecipeListener implements Listener {
             }
         }
         
-        // Если баккит подумал, что рецепт готов (т.к. лежит 1 предмет), но наша строгая проверка на 2+ предмета провалилась, СБРАСЫВАЕМ результат!
+        // Если фейковый рецепт сработал (по базовому материалу), но наша строгая проверка на NBT/Количество провалилась - скрываем результат!
         if (isOurDummy) {
             inv.setResult(null);
         }
@@ -79,7 +77,7 @@ public class VanillaRecipeListener implements Listener {
             if (reqGrid != null) {
                 int[] offset = getMatchOffset(matGrid, reqGrid);
                 if (offset != null) {
-                    event.setCancelled(true);
+                    event.setCancelled(true); // Отменяем ванильный крафт
                     
                     ItemStack result = recipe.getResult().clone();
                     int crafts = 1;
@@ -203,7 +201,7 @@ public class VanillaRecipeListener implements Listener {
                     }
                 }
             }
-        } else if (matrix.length == 4) { // Поддержка 2х2 инвентаря выживания
+        } else if (matrix.length == 4) {
             for (int r = 0; r < 2; r++) {
                 for (int c = 0; c < 2; c++) {
                     ItemStack item = matrix[r * 2 + c];
