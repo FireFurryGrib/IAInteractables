@@ -14,18 +14,25 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 
 public class FurnitureListener implements Listener {
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onFurnitureInteract(FurnitureInteractEvent event) {
         Player player = event.getPlayer();
         String name = event.getNamespacedID().split(":")[1];
         Location entityLocation = event.getBukkitEntity().getLocation();
         Location blockLocation = entityLocation.getBlock().getLocation();
+        
+        // ВАЖНО: Если эта фурнитура - часть многоблочной структуры, уступаем приоритет MultiblockListener!
+        if (Plugin.getInstance().getMultiblockManager().isPartOfActiveStructure(blockLocation)) {
+            return;
+        }
+        
         Furnace furnace = Plugin.getInstance().getRecipeManager().getFurnace(name);
         if (furnace != null) {
             event.setCancelled(true);
@@ -34,11 +41,13 @@ public class FurnitureListener implements Listener {
             new FurnaceGUI(furnace, blockLocation, controller).open(player);
             return;
         }
+        
         Workbench workbench = Plugin.getInstance().getRecipeManager().getWorkbench(name);
         if (workbench != null) {
             event.setCancelled(true);
             new WorkbenchGUI(workbench).open(player);
         }
+        
         SmithingTable smithingTable = Plugin.getInstance().getRecipeManager().getSmithingTable(name);
         if (smithingTable != null) {
             event.setCancelled(true);
@@ -47,13 +56,19 @@ public class FurnitureListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onFurnitureBreak(FurnitureBreakEvent event) {
         String name = event.getNamespacedID().split(":")[1];
+        
+        Location entityLocation = event.getBukkitEntity().getLocation();
+        Location blockLocation = entityLocation.getBlock().getLocation();
+        
+        if (Plugin.getInstance().getMultiblockManager().isPartOfActiveStructure(blockLocation)) {
+            return; // Разрушением займется MultiblockListener
+        }
+
         Furnace furnace = Plugin.getInstance().getRecipeManager().getFurnace(name);
         if (furnace != null) {
-            Location entityLocation = event.getBukkitEntity().getLocation();
-            Location blockLocation = entityLocation.getBlock().getLocation();
             FurnaceController controller = Plugin.getInstance()
                 .getFurnaceManager()
                 .get(blockLocation);

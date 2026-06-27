@@ -14,6 +14,7 @@ import xyz.xenondevs.invui.gui.Gui;
 import xyz.xenondevs.invui.gui.SlotElement;
 import xyz.xenondevs.invui.item.impl.SimpleItem;
 import xyz.xenondevs.invui.window.Window;
+
 import java.util.*;
 
 public class FurnaceGUI {
@@ -23,12 +24,14 @@ public class FurnaceGUI {
     private Gui gui;
     private BukkitTask updateTask;
     private int progressGuiSlotIndex = -1;
+
     public FurnaceGUI(Furnace furnace, org.bukkit.Location location, FurnaceController controller) {
         this.furnace = furnace;
         this.controller = controller;
     }
+
     public void open(Player player) {
-        gui = createGui();
+        gui = createGui(player);
         window = Window.single()
                 .setTitle(new AdventureComponentWrapper(ChatUtil.color(furnace.getTitle())))
                 .setGui(gui)
@@ -37,15 +40,19 @@ public class FurnaceGUI {
         window.open();
         startProgressUpdater();
     }
-    private Gui createGui() {
+
+    private Gui createGui(Player player) {
         String[] cleanStructure = furnace.getStructure().stream()
                 .map(row -> row.replace(" ", ""))
                 .toArray(String[]::new);
+                
         Gui.Builder.Normal guiBuilder = Gui.normal()
                 .setStructure(cleanStructure);
+                
         Map<Character, Integer> controllerStructure = controller.getStructure();
         Set<Character> processedChars = new HashSet<>();
         int guiSlotCounter = 0;
+        
         for (String row : cleanStructure) {
             for (char c : row.toCharArray()) {
                 if (c == 'P') {
@@ -56,9 +63,12 @@ public class FurnaceGUI {
                     if (c == 'X') {
                         guiBuilder.addIngredient('X', furnace.getFiller());
                     } else if (c == 'P') {
-                        guiBuilder.addIngredient('P', new SimpleItem(
-                                furnace.getProgressBar().getItemForProgress(0)
-                        ));
+                        ItemStack pItem = addSettingsLore(furnace.getProgressBar().getItemForProgress(0));
+                        guiBuilder.addIngredient('P', new SimpleItem(pItem, click -> {
+                            if (click.getEvent().isRightClick()) {
+                                new FurnaceSettingsGUI(furnace, controller).open(player);
+                            }
+                        }));
                     } else {
                         Integer inventorySlot = controllerStructure.get(c);
                         if (inventorySlot != null) {
@@ -75,35 +85,59 @@ public class FurnaceGUI {
         }
         return guiBuilder.build();
     }
+
+    private ItemStack addSettingsLore(ItemStack item) {
+        ItemStack modified = item.clone();
+        org.bukkit.inventory.meta.ItemMeta meta = modified.getItemMeta();
+        if (meta != null) {
+            List<net.kyori.adventure.text.Component> lore = meta.hasLore() ? meta.lore() : new ArrayList<>();
+            lore.add(me.FireKillGrib.iAInteractables.utils.ChatUtil.color("&8 "));
+            lore.add(me.FireKillGrib.iAInteractables.utils.ChatUtil.color("&e\u25B6 Right-Click to open Settings"));
+            meta.lore(lore);
+            modified.setItemMeta(meta);
+        }
+        return modified;
+    }
+
     private void startProgressUpdater() {
         updateTask = Plugin.getInstance().getServer().getScheduler()
                 .runTaskTimer(Plugin.getInstance(), this::updateProgressBar, 0L, 5L);
     }
+
     private void updateProgressBar() {
         if (gui == null || progressGuiSlotIndex == -1) return;
+        ItemStack progressItem;
+        
         if (!controller.isCooking()) {
-            ItemStack progressItem = furnace.getProgressBar().getItemForProgress(0);
-            gui.setItem(progressGuiSlotIndex, new SimpleItem(progressItem));
-            return;
+            progressItem = furnace.getProgressBar().getItemForProgress(0);
+        } else {
+            FurnaceRecipe recipe = controller.getCurrentRecipe();
+            if (recipe != null) {
+                progressItem = furnace.getProgressBar().getItemForProgress(
+                        controller.getProgressPercentage(),
+                        controller.getCookingProgress(),
+                        recipe.getCookTimeTicks()
+                );
+            } else {
+                progressItem = furnace.getProgressBar().getItemForProgress(0);
+            }
         }
-        FurnaceRecipe recipe = controller.getCurrentRecipe();
-        if (recipe == null) return;
-        int percentage = controller.getProgressPercentage();
-        int currentTicks = controller.getCookingProgress();
-        int totalTicks = recipe.getCookTimeTicks();
-        ItemStack progressItem = furnace.getProgressBar().getItemForProgress(
-                percentage,
-                currentTicks,
-                totalTicks
-        );
-        gui.setItem(progressGuiSlotIndex, new SimpleItem(progressItem));
+        
+        ItemStack finalItem = addSettingsLore(progressItem);
+        gui.setItem(progressGuiSlotIndex, new SimpleItem(finalItem, click -> {
+            if (click.getEvent().isRightClick()) {
+                new FurnaceSettingsGUI(furnace, controller).open(click.getPlayer());
+            }
+        }));
     }
+
     private void onClose() {
         if (updateTask != null) {
             updateTask.cancel();
             updateTask = null;
         }
     }
+
     public void forceClose() {
         onClose();
         if (window != null) {

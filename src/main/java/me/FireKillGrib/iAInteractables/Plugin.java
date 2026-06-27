@@ -3,11 +3,14 @@ package me.FireKillGrib.iAInteractables;
 import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
 import me.FireKillGrib.iAInteractables.commands.MainCommand;
+import me.FireKillGrib.iAInteractables.commands.MultiblockCommand;
 import me.FireKillGrib.iAInteractables.listeners.FurnitureListener;
 import me.FireKillGrib.iAInteractables.listeners.ItemsAdderListener;
 import me.FireKillGrib.iAInteractables.listeners.RecipeBookListener;
 import me.FireKillGrib.iAInteractables.listeners.VanillaRecipeListener;
 import me.FireKillGrib.iAInteractables.managers.*;
+import me.FireKillGrib.iAInteractables.multiblock.MultiblockManager;
+import me.FireKillGrib.iAInteractables.multiblock.MultiblockListener;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
@@ -23,6 +26,7 @@ public class Plugin extends JavaPlugin {
     @Getter private FurnaceManager furnaceManager;
     @Getter private IntegrationManager integrationManager;
     @Getter private VanillaRecipeManager vanillaRecipeManager;
+    @Getter private MultiblockManager multiblockManager;
 
     @Override
     public void onEnable() {
@@ -48,9 +52,11 @@ public class Plugin extends JavaPlugin {
         furnaceManager = new FurnaceManager();
         integrationManager = new IntegrationManager();
         vanillaRecipeManager = new VanillaRecipeManager();
+        multiblockManager = new MultiblockManager();
         
         PaperCommandManager manager = new PaperCommandManager(this);
         manager.registerCommand(new MainCommand());
+        manager.registerCommand(new MultiblockCommand());
         
         getServer().getPluginManager().registerEvents(new FurnitureListener(), this);
         getServer().getPluginManager().registerEvents(new VanillaRecipeListener(), this);
@@ -61,6 +67,7 @@ public class Plugin extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new ItemsAdderListener(), this);
         }
         getServer().getPluginManager().registerEvents(new RecipeBookListener(), this);
+        getServer().getPluginManager().registerEvents(new MultiblockListener(multiblockManager), this);
         
         reload();
         

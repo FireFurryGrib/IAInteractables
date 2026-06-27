@@ -40,7 +40,7 @@ public class FurnaceManager {
         Plugin.getInstance().getFurnaceDataManager().saveAsync(
             controller.getLocation(),
             controller.getInventory(), 
-            controller.getCookingProgress()
+            controller.getCookingProgress(), false, null
         );
     }
 }

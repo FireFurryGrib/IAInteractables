@@ -55,12 +55,12 @@ public class VanillaRecipeManager {
                     char charKey = slotKey.charAt(0);
                     ItemStack item = parseItem(s.getConfigurationSection(slotKey));
                     if (item != null) {
-                        ingredients.put(charKey, item); // Сохраняем оригинальное количество!
+                        ingredients.put(charKey, item); // Сохраняем оригинальное количество для внутренней логики
                     }
                 }
                 workbenchRecipes.add(new WorkbenchRecipe(result, ingredients));
 
-                // Регистрация фиктивного рецепта в Bukkit для клиента (MaterialChoice обходит баги ядра с NBT/количеством)
+                // Регистрация фиктивного рецепта в Bukkit (используем ExactChoice с кол-вом 1 для отображения IA моделей)
                 try {
                     NamespacedKey wKey = new NamespacedKey(Plugin.getInstance(), "v_wb_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10));
                     ShapedRecipe sr = new ShapedRecipe(wKey, result);
@@ -84,7 +84,9 @@ public class VanillaRecipeManager {
                         if (req == null) req = ingredients.get((char) ('0' + i));
                         
                         if (req != null && !req.getType().isAir()) {
-                            sr.setIngredient(c, new RecipeChoice.MaterialChoice(req.getType()));
+                            ItemStack displayReq = req.clone();
+                            displayReq.setAmount(1); // Для книги рецептов количество всегда 1
+                            sr.setIngredient(c, new RecipeChoice.ExactChoice(displayReq));
                             hasAny = true;
                         }
                     }
@@ -125,7 +127,9 @@ public class VanillaRecipeManager {
                 if (firstRaw != null) {
                     try {
                         NamespacedKey fKey = new NamespacedKey(Plugin.getInstance(), "v_furnace_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10));
-                        org.bukkit.inventory.FurnaceRecipe fr = new org.bukkit.inventory.FurnaceRecipe(fKey, result, new RecipeChoice.MaterialChoice(firstRaw.getType()), 0f, cookTime);
+                        ItemStack displayRaw = firstRaw.clone();
+                        displayRaw.setAmount(1);
+                        org.bukkit.inventory.FurnaceRecipe fr = new org.bukkit.inventory.FurnaceRecipe(fKey, result, new RecipeChoice.ExactChoice(displayRaw), 0f, cookTime);
                         Bukkit.addRecipe(fr);
                         registeredKeys.add(fKey);
                     } catch (Exception ignored) {}
@@ -140,10 +144,15 @@ public class VanillaRecipeManager {
                     smithingRecipes.add(new SmithingRecipe(result, template, base, addition));
                     try {
                         NamespacedKey sKey = new NamespacedKey(Plugin.getInstance(), "v_smithing_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10));
+                        
+                        ItemStack t = template.clone(); t.setAmount(1);
+                        ItemStack b = base.clone(); b.setAmount(1);
+                        ItemStack a = addition.clone(); a.setAmount(1);
+                        
                         SmithingTransformRecipe str = new SmithingTransformRecipe(sKey, result,
-                            new RecipeChoice.MaterialChoice(template.getType()),
-                            new RecipeChoice.MaterialChoice(base.getType()),
-                            new RecipeChoice.MaterialChoice(addition.getType()));
+                            new RecipeChoice.ExactChoice(t),
+                            new RecipeChoice.ExactChoice(b),
+                            new RecipeChoice.ExactChoice(a));
                         Bukkit.addRecipe(str);
                         registeredKeys.add(sKey);
                     } catch (Exception ignored) {}

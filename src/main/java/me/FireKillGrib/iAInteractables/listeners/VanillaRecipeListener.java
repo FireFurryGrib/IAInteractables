@@ -28,7 +28,8 @@ import java.util.Set;
 
 public class VanillaRecipeListener implements Listener {
 
-    @EventHandler
+    // HIGHEST приоритет заставит наш плагин выставить результат самым последним, блокируя другие плагины!
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         CraftingInventory inv = event.getInventory();
         Recipe bukkitRecipe = inv.getRecipe();
@@ -57,7 +58,7 @@ public class VanillaRecipeListener implements Listener {
             }
         }
         
-        // Если фейковый рецепт сработал (по базовому материалу), но наша строгая проверка на NBT/Количество провалилась - скрываем результат!
+        // Если фейковый рецепт сработал, но наша строгая проверка на кол-во/NBT провалилась - обнуляем
         if (isOurDummy) {
             inv.setResult(null);
         }
@@ -77,7 +78,7 @@ public class VanillaRecipeListener implements Listener {
             if (reqGrid != null) {
                 int[] offset = getMatchOffset(matGrid, reqGrid);
                 if (offset != null) {
-                    event.setCancelled(true); // Отменяем ванильный крафт
+                    event.setCancelled(true); 
                     
                     ItemStack result = recipe.getResult().clone();
                     int crafts = 1;
@@ -121,7 +122,7 @@ public class VanillaRecipeListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onFurnaceSmelt(FurnaceSmeltEvent event) {
         ItemStack source = event.getSource();
         for (FurnaceRecipe recipe : Plugin.getInstance().getVanillaRecipeManager().getFurnaceRecipes()) {
@@ -136,7 +137,7 @@ public class VanillaRecipeListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPrepareSmithing(PrepareSmithingEvent event) {
         SmithingInventory inv = event.getInventory();
         Recipe recipe = inv.getRecipe();
