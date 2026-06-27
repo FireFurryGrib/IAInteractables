@@ -24,6 +24,14 @@ Custom furnaces and workbenches plugin for Paper and Spigot for 1.20.5+ with Ite
 - Drag & drop crafting
 - Particle effects
 - Sound effects
+
+### 🔨 Custom Multiblock structures (WIP!)
+- Can be rotated or placed anywhere in the world
+- Created by marking a square with markers
+- Have their own GUI with a lot of different buttons for future content! (WIP)
+- Uses structure void to define what blocks need to be 100% air or special blocks/fluids for visualisation of work process (WIP)
+- Structure damage (WIP)
+- and many more to come! (WIP)
   
 ### 🎨 Advanced Customization
 - Custom GUI structure and size (up to 54 slots)
@@ -326,4 +334,7 @@ recipe-book:
   hidden-stations:
     - "secret_workbench"
     - "admin_furnace"
+multiblock:
+  marker-block: "structure_block"
+  activator-item: "nether_star"
 ```
