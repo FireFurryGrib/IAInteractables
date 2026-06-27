@@ -18,14 +18,16 @@ Custom furnaces and workbenches plugin for Paper and Spigot for 1.20.5+ with Ite
 - Custom cooking time
 - Particle effects
 - Sound effects
+- Automatization and redstone compatability
 
 ### 🔨 Custom Workbenches & Smithing tables
 - Flexible slot layout
 - Drag & drop crafting
 - Particle effects
 - Sound effects
+- Automatization and redstone compatability (WIP)
 
-### 🔨 Custom Multiblock structures (WIP!)
+### 🏭 Custom Multiblock structures (WIP!)
 - Can be rotated or placed anywhere in the world
 - Created by marking a square with markers
 - Have their own GUI with a lot of different buttons for future content! (WIP)
