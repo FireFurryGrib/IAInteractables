@@ -33,7 +33,7 @@ dependencies {
     compileOnly 'me.clip:placeholderapi:2.11.6'
     compileOnly "dev.lone:api-itemsadder:4.0.10"
     implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
-    implementation "xyz.xenondevs.invui:invui:1.46"
+    implementation "xyz.xenondevs.invui:invui:1.49"
     implementation("org.bstats:bstats-bukkit:3.1.0")
 }
 

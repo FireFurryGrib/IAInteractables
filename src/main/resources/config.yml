@@ -11,3 +11,6 @@ recipe-book:
   hidden-stations:
     - "secret_workbench"
     - "admin_furnace"
+multiblock:
+  marker-block: "structure_block"
+  activator-item: "ia-steel_ingot"
