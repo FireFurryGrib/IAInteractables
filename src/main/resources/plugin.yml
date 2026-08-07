@@ -1,5 +1,5 @@
 name: IAInteractables
-version: '2.5.0'
+version: '3.0.0-alpha'
 main: me.FireKillGrib.iAInteractables.Plugin
 api-version: '1.20'
 

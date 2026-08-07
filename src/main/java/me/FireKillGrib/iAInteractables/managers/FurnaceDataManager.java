@@ -1,81 +1,77 @@
 package me.FireKillGrib.iAInteractables.managers;
 
 import me.FireKillGrib.iAInteractables.Plugin;
+import me.FireKillGrib.iAInteractables.fluids.FluidStack;
+import me.FireKillGrib.iAInteractables.fluids.IOState;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class FurnaceDataManager {
     private final File storageFolder;
 
     public FurnaceDataManager(File dataFolder) {
         this.storageFolder = new File(dataFolder, "data/furnaces");
-        if (!this.storageFolder.exists()) {
-            this.storageFolder.mkdirs();
-        }
+        if (!this.storageFolder.exists()) this.storageFolder.mkdirs();
     }
 
-    public void saveAsync(Location location, VirtualInventory inventory, int cookingProgress, boolean isAutomated, Set<Integer> blockedSlots) {
-        // Сбор данных строго в главном потоке (Thread-Safe)
+    public void saveAsync(Location location, VirtualInventory inventory, int cookingProgress, boolean isAutomated, Set<Integer> blockedSlots, FluidStack fluid, Map<BlockFace, IOState> sideConfig) {
         ItemStack[] items = new ItemStack[inventory.getSize()];
         for (int i = 0; i < inventory.getSize(); i++) {
             ItemStack item = inventory.getItem(i);
-            if (item != null && !item.getType().isAir()) {
-                items[i] = item.clone();
-            }
+            if (item != null && !item.getType().isAir()) items[i] = item.clone();
         }
         Set<Integer> blocks = new HashSet<>(blockedSlots);
+        FluidStack fsCopy = fluid != null ? fluid.clone() : null;
+        Map<BlockFace, IOState> sidesCopy = new HashMap<>(sideConfig);
 
         Bukkit.getScheduler().runTaskAsynchronously(Plugin.getInstance(), () -> {
-            saveSyncInternal(location, items, cookingProgress, isAutomated, blocks);
+            saveSyncInternal(location, items, cookingProgress, isAutomated, blocks, fsCopy, sidesCopy);
         });
     }
 
-    public void saveSync(Location location, VirtualInventory inventory, int cookingProgress, boolean isAutomated, Set<Integer> blockedSlots) {
+    public void saveSync(Location location, VirtualInventory inventory, int cookingProgress, boolean isAutomated, Set<Integer> blockedSlots, FluidStack fluid, Map<BlockFace, IOState> sideConfig) {
         ItemStack[] items = new ItemStack[inventory.getSize()];
         for (int i = 0; i < inventory.getSize(); i++) {
             ItemStack item = inventory.getItem(i);
-            if (item != null && !item.getType().isAir()) {
-                items[i] = item.clone();
-            }
+            if (item != null && !item.getType().isAir()) items[i] = item.clone();
         }
-        saveSyncInternal(location, items, cookingProgress, isAutomated, blockedSlots);
+        saveSyncInternal(location, items, cookingProgress, isAutomated, blockedSlots, fluid, sideConfig);
     }
 
-    private void saveSyncInternal(Location location, ItemStack[] items, int cookingProgress, boolean isAutomated, Set<Integer> blockedSlots) {
+    private void saveSyncInternal(Location location, ItemStack[] items, int cookingProgress, boolean isAutomated, Set<Integer> blockedSlots, FluidStack fluid, Map<BlockFace, IOState> sideConfig) {
         File file = new File(storageFolder, locationToString(location) + ".yml");
         YamlConfiguration config = new YamlConfiguration();
         
         for (int i = 0; i < items.length; i++) {
-            if (items[i] != null) {
-                config.set("items." + i, items[i]);
-            }
+            if (items[i] != null) config.set("items." + i, items[i]);
         }
         config.set("cooking-progress", cookingProgress);
         config.set("is-automated", isAutomated);
         config.set("blocked-slots", new ArrayList<>(blockedSlots));
-        
-        try {
-            config.save(file);
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        if (fluid != null) {
+            config.set("fluid.id", fluid.getFluidId());
+            config.set("fluid.amount", fluid.getAmountLn());
         }
+
+        for (Map.Entry<BlockFace, IOState> entry : sideConfig.entrySet()) {
+            config.set("sides." + entry.getKey().name(), entry.getValue().name());
+        }
+        
+        try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
     }
 
     public Map<String, Object> load(Location location) {
         File file = new File(storageFolder, locationToString(location) + ".yml");
-        if (!file.exists()) {
-            return null;
-        }
+        if (!file.exists()) return null;
+        
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
         Map<String, Object> data = new HashMap<>();
         Map<Integer, ItemStack> items = new HashMap<>();
@@ -89,6 +85,18 @@ public class FurnaceDataManager {
         data.put("cooking-progress", config.getInt("cooking-progress", 0));
         data.put("is-automated", config.getBoolean("is-automated", false));
         data.put("blocked-slots", config.getIntegerList("blocked-slots"));
+
+        if (config.contains("fluid.id")) {
+            data.put("fluid", new FluidStack(config.getString("fluid.id"), config.getInt("fluid.amount")));
+        }
+
+        Map<BlockFace, IOState> sides = new HashMap<>();
+        if (config.contains("sides")) {
+            for (String key : config.getConfigurationSection("sides").getKeys(false)) {
+                sides.put(BlockFace.valueOf(key), IOState.valueOf(config.getString("sides." + key)));
+            }
+        }
+        data.put("sides", sides);
         
         return data;
     }

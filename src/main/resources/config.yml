@@ -14,3 +14,12 @@ recipe-book:
 multiblock:
   marker-block: "structure_block"
   activator-item: "ia-steel_ingot"
+wrenches:
+  normal: "ia-iron_hammer" 
+  admin: "ia-echpochmak"
+tools:
+  inspector: "ia-fluid_inspector"
+pipes:
+  place-item: "ia-pipe_item" 
+  center-model: "ia-pipe_center" 
+  arm-model: "ia-pipe_arm"

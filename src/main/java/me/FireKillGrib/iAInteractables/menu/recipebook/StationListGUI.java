@@ -71,7 +71,7 @@ public class StationListGUI {
         if (!filteredWb.isEmpty() && !hidden.contains("vanilla_workbench")) {
             Workbench dummyWb = new Workbench("v_wb", "&eVanilla Workbench", null, 
                 Arrays.asList("X X X X X X X X X", "X A B C X X R X X", "X D E F X X X X X", "X G H I X X Z X X", "X X X X X X X X X"), 
-                new ItemBuilder(Material.BLACK_STAINED_GLASS_PANE).setDisplayName(" "), filteredWb, null);
+                new ItemBuilder(Material.BLACK_STAINED_GLASS_PANE).setDisplayName(" "), filteredWb, null, hidden);
             
             items.add(new SimpleItem(new ItemBuilder(Material.CRAFTING_TABLE)
                     .setDisplayName(serializer.serialize(ChatUtil.color("&eVanilla Workbench")))
@@ -87,7 +87,7 @@ public class StationListGUI {
         if (!filteredFn.isEmpty() && !hidden.contains("vanilla_furnace")) {
             Furnace dummyFn = new Furnace("v_fn", "&cVanilla Furnace", null, 
                 Arrays.asList("X X X X X X X X X", "X X I X P X R X X", "X X X X X X X X X", "X X U X X X Z X X", "X X X X X X X X X"), 
-                new ItemBuilder(Material.BLACK_STAINED_GLASS_PANE).setDisplayName(" "), filteredFn, null, ProgressBarConfig.getDefault());
+                new ItemBuilder(Material.BLACK_STAINED_GLASS_PANE).setDisplayName(" "), filteredFn, null, ProgressBarConfig.getDefault(), hidden, null);
             
             items.add(new SimpleItem(new ItemBuilder(Material.FURNACE)
                     .setDisplayName(serializer.serialize(ChatUtil.color("&cVanilla Furnace")))
@@ -103,7 +103,7 @@ public class StationListGUI {
         if (!filteredSt.isEmpty() && !hidden.contains("vanilla_smithing")) {
             SmithingTable dummySt = new SmithingTable("v_st", "&8Vanilla Smithing", null, 
                 Arrays.asList("X X X X X X X X X", "X T B A X X R X X", "X X X X X X Z X X"), 
-                new ItemBuilder(Material.BLACK_STAINED_GLASS_PANE).setDisplayName(" "), filteredSt, null);
+                new ItemBuilder(Material.BLACK_STAINED_GLASS_PANE).setDisplayName(" "), filteredSt, null, hidden);
             
             items.add(new SimpleItem(new ItemBuilder(Material.SMITHING_TABLE)
                     .setDisplayName(serializer.serialize(ChatUtil.color("&8Vanilla Smithing Table")))

@@ -15,7 +15,7 @@ structure:
 filler:
   material: BLACK_STAINED_GLASS_PANE
   name: ""
-
+TC
 effects:
   on-craft:
     sound:

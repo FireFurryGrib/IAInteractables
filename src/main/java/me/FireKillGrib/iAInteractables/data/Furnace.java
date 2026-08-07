@@ -18,4 +18,20 @@ public class Furnace {
     private final Set<FurnaceRecipe> recipes;
     private final FurnaceEffects effects;
     private final ProgressBarConfig progressBar;
+    private final List<String> specialFunctions; 
+    
+    // Новая настройка для помпы
+    private final PumpSettings pumpSettings;
+
+    @AllArgsConstructor
+    @Getter
+    public static class PumpSettings {
+        private final String targetFluid;
+        private final String targetBlock;
+        private final int requiredBlocks;
+        private final int pumpAmountLn;
+        private final int pumpIntervalTicks;
+        private final char fuelSlot;
+        private final int fuelAmount;
+    }
 }

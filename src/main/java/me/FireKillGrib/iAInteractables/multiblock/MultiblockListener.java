@@ -4,6 +4,7 @@ import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.Events.FurnitureBreakEvent;
 import dev.lone.itemsadder.api.Events.FurnitureInteractEvent;
 import me.FireKillGrib.iAInteractables.Plugin;
+import me.FireKillGrib.iAInteractables.utils.RotationUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -22,36 +23,39 @@ public class MultiblockListener implements Listener {
         this.multiblockManager = manager;
     }
 
-    // Убрали ignoreCancelled=true, теперь мы обрабатываем клики в любом случае
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null) {
             Block block = event.getClickedBlock();
             Location core = block.getLocation();
 
-            // 1. Сначала проверяем: если клик по уже активной структуре - ВСЕГДА открываем GUI
+            // 1. Если структура УЖЕ АКТИВНА
             MultiblockInstance instance = multiblockManager.getStructureAt(core);
             if (instance != null) {
+                // ЗАЩИТА: Если игрок держит ключ, не открываем меню структуры, уступаем WrenchListener!
+                if (me.FireKillGrib.iAInteractables.fluids.WrenchUtil.isAnyWrench(event.getPlayer().getInventory().getItemInMainHand())) {
+                    return;
+                }
+                
                 event.setCancelled(true);
                 MultiblockGUI.openGUI(event.getPlayer(), instance);
-                return; // Останавливаем выполнение
+                return;
             }
 
-            // 2. Если структура НЕ активна, проверяем, держит ли игрок активатор
+            // 2. Если НЕ АКТИВНА, пытаемся активировать
             ItemStack item = event.getItem();
             if (item != null && isActivator(item)) {
                 int[] rotations = {0, 90, 180, 270};
                 for (MultiblockTemplate template : multiblockManager.getAllTemplates()) {
                     for (int rot : rotations) {
                         if (StructureValidator.validate(template, core, rot)) {
-                            // Структура собрана верно, регистрируем
                             MultiblockInstance newInstance = new MultiblockInstance(template.getName(), core, rot);
                             
                             for (org.bukkit.util.Vector v : template.getBlocks().keySet()) {
-                                newInstance.addBlock(core.clone().add(StructureValidator.rotateVector(v, rot)));
+                                newInstance.addBlock(core.clone().add(RotationUtil.rotateVector(v, rot)));
                             }
                             for (org.bukkit.util.Vector v : template.getFurniture().keySet()) {
-                                newInstance.addFurnitureLocation(core.clone().add(StructureValidator.rotateVector(v, rot)));
+                                newInstance.addFurnitureLocation(core.clone().add(RotationUtil.rotateVector(v, rot)));
                             }
 
                             StructureValidator.snapFurniture(template, core, rot);
@@ -78,6 +82,11 @@ public class MultiblockListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onFurnitureInteract(FurnitureInteractEvent event) {
+        // ЗАЩИТА: Если игрок держит ключ, уступаем WrenchListener
+        if (me.FireKillGrib.iAInteractables.fluids.WrenchUtil.isAnyWrench(event.getPlayer().getInventory().getItemInMainHand())) {
+            return;
+        }
+
         Location blockLoc = event.getBukkitEntity().getLocation().getBlock().getLocation();
         MultiblockInstance instance = multiblockManager.getStructureAt(blockLoc);
         if (instance != null) {
@@ -100,10 +109,10 @@ public class MultiblockListener implements Listener {
         if (item == null || item.getType() == Material.AIR) return false;
         
         String cfg = Plugin.getInstance().getConfig().getString("multiblock.activator-item", "GOLDEN_HOE");
-        if (cfg.startsWith("ia-")) {
+        if (cfg.startsWith("ia-") || cfg.contains(":")) {
             CustomStack cs = CustomStack.byItemStack(item);
             if (cs == null) return false;
-            String targetId = cfg.substring(3);
+            String targetId = cfg.startsWith("ia-") ? cfg.substring(3) : cfg;
             return cs.getNamespacedID().equals(targetId) || cs.getId().equals(targetId);
         }
         return item.getType().name().equalsIgnoreCase(cfg);

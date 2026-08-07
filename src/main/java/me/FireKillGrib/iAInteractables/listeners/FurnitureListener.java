@@ -24,6 +24,9 @@ public class FurnitureListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onFurnitureInteract(FurnitureInteractEvent event) {
         Player player = event.getPlayer();
+        if (me.FireKillGrib.iAInteractables.fluids.WrenchUtil.isAnyWrench(player.getInventory().getItemInMainHand())) {
+            return;
+        }
         String name = event.getNamespacedID().split(":")[1];
         Location entityLocation = event.getBukkitEntity().getLocation();
         Location blockLocation = entityLocation.getBlock().getLocation();

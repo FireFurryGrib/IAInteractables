@@ -16,4 +16,5 @@ public class SmithingTable {
     private final ItemProvider filler;
     private final Set<SmithingRecipe> recipes;
     private final WorkbenchEffects effects;
+    private final List<String> specialFunctions; // Новое поле для тегов '$'
 }

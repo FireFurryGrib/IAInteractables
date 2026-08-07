@@ -121,7 +121,7 @@ public class VanillaRecipeManager {
                     }
                 }
                 
-                FurnaceRecipe customRecipe = new FurnaceRecipe(result, cookTime, raws, fuels);
+                me.FireKillGrib.iAInteractables.data.FurnaceRecipe customRecipe = new me.FireKillGrib.iAInteractables.data.FurnaceRecipe(result, cookTime, raws, fuels, new HashMap<>(), null);
                 furnaceRecipes.add(customRecipe);
                 
                 if (firstRaw != null) {

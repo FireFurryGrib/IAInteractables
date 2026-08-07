@@ -16,4 +16,5 @@ public class Workbench {
     private final ItemProvider filler;
     private final Set<WorkbenchRecipe> recipes;
     private final WorkbenchEffects effects;
+    private final List<String> specialFunctions; // Новое поле для тегов '$'
 }

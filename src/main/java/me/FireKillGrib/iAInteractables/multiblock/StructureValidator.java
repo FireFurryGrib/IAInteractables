@@ -2,6 +2,7 @@ package me.FireKillGrib.iAInteractables.multiblock;
 
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomFurniture;
+import me.FireKillGrib.iAInteractables.utils.RotationUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -15,9 +16,8 @@ import java.util.Map;
 public class StructureValidator {
 
     public static boolean validate(MultiblockTemplate template, Location realCore, int rotationDegrees) {
-        // Проверяем блоки
         for (Map.Entry<Vector, MultiblockTemplate.BlockData> entry : template.getBlocks().entrySet()) {
-            Vector rotatedOffset = rotateVector(entry.getKey(), rotationDegrees);
+            Vector rotatedOffset = RotationUtil.rotateVector(entry.getKey(), rotationDegrees);
             Location targetLoc = realCore.clone().add(rotatedOffset);
             Block actualBlock = targetLoc.getBlock();
             MultiblockTemplate.BlockData required = entry.getValue();
@@ -39,9 +39,8 @@ public class StructureValidator {
             }
         }
 
-        // Проверяем фурнитуру
         for (Map.Entry<Vector, MultiblockTemplate.FurnitureData> entry : template.getFurniture().entrySet()) {
-            Vector rotatedOffset = rotateVector(entry.getKey(), rotationDegrees);
+            Vector rotatedOffset = RotationUtil.rotateVector(entry.getKey(), rotationDegrees);
             Location targetLoc = realCore.clone().add(rotatedOffset);
 
             if (!hasFurniture(targetLoc, entry.getValue().getFurnitureId())) {
@@ -54,7 +53,7 @@ public class StructureValidator {
 
     public static void snapFurniture(MultiblockTemplate template, Location realCore, int rotationDegrees) {
         for (Map.Entry<Vector, MultiblockTemplate.FurnitureData> entry : template.getFurniture().entrySet()) {
-            Vector rotatedOffset = rotateVector(entry.getKey(), rotationDegrees);
+            Vector rotatedOffset = RotationUtil.rotateVector(entry.getKey(), rotationDegrees);
             Location targetLoc = realCore.clone().add(rotatedOffset);
             
             float targetYaw = (entry.getValue().getYaw() + rotationDegrees) % 360;
@@ -68,18 +67,6 @@ public class StructureValidator {
                 }
             }
         }
-    }
-
-    public static Vector rotateVector(Vector v, int degrees) {
-        int x = v.getBlockX();
-        int y = v.getBlockY();
-        int z = v.getBlockZ();
-
-        if (degrees == 90) return new Vector(-z, y, x);
-        if (degrees == 180) return new Vector(-x, y, -z);
-        if (degrees == 270) return new Vector(z, y, -x);
-        
-        return new Vector(x, y, z);
     }
 
     private static boolean hasFurniture(Location loc, String requiredId) {

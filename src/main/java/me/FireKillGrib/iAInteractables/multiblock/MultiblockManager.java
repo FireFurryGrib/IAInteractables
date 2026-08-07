@@ -1,6 +1,7 @@
 package me.FireKillGrib.iAInteractables.multiblock;
 
 import me.FireKillGrib.iAInteractables.Plugin;
+import me.FireKillGrib.iAInteractables.utils.RotationUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -105,17 +106,20 @@ public class MultiblockManager {
 
             MultiblockTemplate template = loadedTemplates.get(templateName);
             if (template != null && core != null) {
+                // Восстанавливаем кэш
                 MultiblockInstance instance = new MultiblockInstance(templateName, core, rot);
                 for (Vector v : template.getBlocks().keySet()) {
-                    instance.addBlock(core.clone().add(StructureValidator.rotateVector(v, rot)));
+                    instance.addBlock(core.clone().add(RotationUtil.rotateVector(v, rot)));
                 }
                 for (Vector v : template.getFurniture().keySet()) {
-                    instance.addFurnitureLocation(core.clone().add(StructureValidator.rotateVector(v, rot)));
+                    instance.addFurnitureLocation(core.clone().add(RotationUtil.rotateVector(v, rot)));
                 }
+                // Регистрируем без повторного сохранения
                 for (Location loc : instance.getAllElements()) {
                     activeStructures.put(normalize(loc), instance);
                 }
             } else {
+                // Если шаблон удалили, удаляем и осиротевшую структуру
                 file.delete();
             }
         }
@@ -137,6 +141,9 @@ public class MultiblockManager {
     public void registerStructure(MultiblockInstance instance) {
         for (Location loc : instance.getAllElements()) {
             activeStructures.put(normalize(loc), instance);
+        }
+        for (Location loc : instance.getAllElements()) {
+            Plugin.getInstance().getPipeManager().updateAdjacentPipes(loc);
         }
         saveActiveStructure(instance);
     }
@@ -182,6 +189,7 @@ public class MultiblockManager {
     }
 
     private String vectorToString(Vector v) { return v.getBlockX() + "," + v.getBlockY() + "," + v.getBlockZ(); }
+    
     private Vector stringToVector(String s) {
         String[] p = s.split(",");
         return new Vector(Integer.parseInt(p[0]), Integer.parseInt(p[1]), Integer.parseInt(p[2]));
